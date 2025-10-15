@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import com.example.app_finanzas.Activities.DashboardActivity.components.CardSection
 import com.example.app_finanzas.Domain.ExpenseDomain
 import com.example.app_finanzas.Activities.DashboardActivity.components.HeaderSection
+import com.example.app_finanzas.activities.dashboardactivity.components.ActionButtonRow
 
 @Composable
 @Preview(showBackground = true)
@@ -43,6 +44,7 @@ fun MainScreen(
 
             item { HeaderSection() }
             item { CardSection (onCardClick)}
+            item { ActionButtonRow() }
         }
     }
 }
