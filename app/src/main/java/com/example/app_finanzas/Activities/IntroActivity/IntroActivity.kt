@@ -6,7 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import com.example.app_finanzas.activities.introactivity.screens.IntroScreen
-import com.example.app_finanzas.MainActivity
+import com.example.app_finanzas.Activities.DashboardActivity.MainActivity
 
 class IntroActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
