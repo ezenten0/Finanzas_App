@@ -24,7 +24,7 @@ fun MainScreenPreview(){
         ExpenseDomain("Cinemax",6900,"img3","16 jun 2025 15:30"),
         ExpenseDomain("Restaurant",6000,"img1","15 jun 2025 18:59")
     )
-        MainScreen( expenses = expenses )
+    MainScreen( expenses = expenses )
 }
 @Composable
 fun MainScreen(
