@@ -1,5 +1,4 @@
-package com.example.app_finanzas.activities.dashboardactivity.components
-
+package com.example.app_finanzas.Activities.DashboardActivity.components
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -20,11 +19,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.app_finanzas.R
 
 @Composable
+@Preview
 fun ActionButtonRow() {
     Row(
         modifier = Modifier
