@@ -26,7 +26,7 @@ fun CircularProgressbar(
             style = Stroke(width = stroke.toPx(),cap= StrokeCap.Round)
         )
         drawArc(
-            color = backgroundColor,
+            color = color,
             startAngle = -90f,
             sweepAngle = (progress/max)*360f,
             useCenter = false,
