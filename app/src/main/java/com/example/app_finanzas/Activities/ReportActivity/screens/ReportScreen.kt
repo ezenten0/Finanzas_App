@@ -8,15 +8,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialogDefaults.shape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.colorResource
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.app_finanzas.Activities.ReportActivity.components.CenterStatsCard
 import com.example.app_finanzas.Activities.ReportActivity.components.GradientHeader
+import com.example.app_finanzas.Activities.ReportActivity.components.SummaryColums
 import com.example.app_finanzas.Domain.BudgetDomain
+import com.example.app_finanzas.R
 
 
 @Composable
@@ -82,6 +87,15 @@ fun ReportContent(
                 )
 
             }
+        }
+
+        item {
+            SummaryColums(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp),
+            )
+
         }
     }
 
