@@ -10,19 +10,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.app_finanzas.R
 
 @Composable
-fun BottomNavigationBar(onItemSelected:(Int)->Unit,
-                        modifier: Modifier){
+fun BottomNavigationBar(
+    selectedItemId: Int,
+    onItemSelected:(Int)->Unit,
+    modifier: Modifier
+){
     NavigationBar (containerColor = colorResource(R.color.lightBlue),
         modifier = modifier
             .fillMaxWidth()
             .height(80.dp)
         ) {
         NavigationBarItem(
-            selected = true,
+            selected = selectedItemId == R.id.wallet,
             onClick = { onItemSelected(R.id.wallet) },
             icon = {
                 Icon(painter = painterResource(R.drawable.wallet), contentDescription = null)
@@ -30,15 +34,15 @@ fun BottomNavigationBar(onItemSelected:(Int)->Unit,
             label = { Text("Home") }
         )
         NavigationBarItem(
-            selected = false,
-            onClick = { onItemSelected(R.id.market) },
+            selected = selectedItemId == R.id.future,
+            onClick = { onItemSelected(R.id.future) },
             icon = {
-                Icon(painter = painterResource(R.drawable.market), contentDescription = null)
+                Icon(painter = painterResource(R.drawable.futures), contentDescription = null)
             },
-            label = { Text("market") }
+            label = { Text("Reporte") }
         )
         NavigationBarItem(
-            selected = false,
+            selected = selectedItemId == R.id.trade,
             onClick = { onItemSelected(R.id.trade) },
             icon = {
                 Icon(painter = painterResource(R.drawable.trade), contentDescription = null)
@@ -46,15 +50,15 @@ fun BottomNavigationBar(onItemSelected:(Int)->Unit,
             label = { Text("Trade") }
         )
         NavigationBarItem(
-            selected = false,
-            onClick = { onItemSelected(R.id.futures) },
+            selected = selectedItemId == R.id.qrpay,
+            onClick = { onItemSelected(R.id.qrpay) },
             icon = {
-                Icon(painter = painterResource(R.drawable.futures), contentDescription = null)
+                Icon(painter = painterResource(R.drawable.qrpay), contentDescription = null)
             },
-            label = { Text("Futures") }
+            label = { Text("Pago QR") }
         )
         NavigationBarItem(
-            selected = false,
+            selected = selectedItemId == R.id.profile,
             onClick = { onItemSelected(R.id.profile) },
             icon = {
                 Icon(painter = painterResource(R.drawable.profile), contentDescription = null)
@@ -62,4 +66,11 @@ fun BottomNavigationBar(onItemSelected:(Int)->Unit,
             label = { Text("Profile") }
         )
     }
+}
+
+
+@Preview
+@Composable
+fun BottomNavigationBarPreview(){
+    BottomNavigationBar(selectedItemId = R.id.wallet, onItemSelected = {}, modifier = Modifier)
 }

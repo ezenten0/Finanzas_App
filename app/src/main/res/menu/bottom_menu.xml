@@ -4,14 +4,14 @@
     android:id="@+id/wallet"
     android:title="Wallet"/>
     <item
-        android:id="@+id/market"
-        android:title="Market"/>
+        android:id="@+id/future"
+        android:title="future" />
     <item
         android:id="@+id/trade"
         android:title="Trade"/>
     <item
-        android:id="@+id/futures"
-        android:title="Futures"/>
+        android:id="@+id/qrpay"
+        android:title="qrpay" />
     <item
         android:id="@+id/profile"
         android:title="Profile"/>

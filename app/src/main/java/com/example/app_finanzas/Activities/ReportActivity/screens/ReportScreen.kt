@@ -1,5 +1,6 @@
 package com.example.app_finanzas.Activities.ReportActivity.screens
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Row
 import  androidx.compose.foundation.layout.fillMaxSize
@@ -7,10 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialogDefaults.shape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -28,44 +26,20 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Text
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
-import com.example.app_finanzas.Activities.DashboardActivity.components.BottomNavigationBar
 import com.example.app_finanzas.Activities.ReportActivity.components.BudgetItem
 
 
+@SuppressLint("SuspiciousIndentation")
 @Composable
 fun ReportScreen(
     budgets:List<BudgetDomain>,
     onBack:()->Unit
 ){
-    ConstraintLayout (modifier = Modifier.fillMaxSize()){
-        val (scrollRef,bottomBarRef)=createRefs()
-
-            ReportContent(
-                budgets = budgets,
-                modifier = Modifier.constrainAs(scrollRef){
-                    top.linkTo(parent.top)
-                    start.linkTo(parent.start)
-                    end.linkTo(parent.end)
-                    bottom.linkTo(bottomBarRef.top)
-                },
-                onBack =  onBack
-            )
-        BottomNavigationBar(
-            modifier = Modifier
-                .height(80.dp)
-                .constrainAs(bottomBarRef) {
-                    bottom.linkTo(parent.bottom)
-                    start.linkTo(parent.start)
-                    end.linkTo(parent.end)
-                },
-            onItemSelected = {itemId->
-                if(itemId==R.id.wallet) {
-                }
-
-            }
-        )
-
-    }
+    ReportContent(
+        budgets = budgets,
+        modifier = Modifier.fillMaxSize(),
+        onBack =  onBack
+    )
 }
 
 @Composable
@@ -76,8 +50,7 @@ fun ReportContent(
 ) {
     LazyColumn(
         modifier = modifier.background(Color.White),
-
-        ) {
+    ) {
         item {
             ConstraintLayout(
                 modifier = Modifier
@@ -95,7 +68,6 @@ fun ReportContent(
                             end.linkTo(parent.end)
                         },
                     onBack = onBack
-
                 )
                 CenterStatsCard(
                     modifier = Modifier
@@ -109,19 +81,15 @@ fun ReportContent(
                             end.linkTo(parent.end)
                         }
                 )
-
             }
         }
-
         item {
             SummaryColums(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp),
             )
-
         }
-
         item {
             Row(
                 modifier = Modifier
@@ -129,7 +97,6 @@ fun ReportContent(
                     .padding(top = 16.dp)
                     .padding(horizontal = 24.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
-
             ) {
                 Text(
                     "Mi presupuesto",
@@ -138,7 +105,6 @@ fun ReportContent(
                     color = colorResource(id = R.color.black)
                 )
                 Text("editar", color = colorResource(R.color.black))
-
             }
         }
         itemsIndexed(budgets) { index, item ->
@@ -153,7 +119,6 @@ fun ReportScreenPreview(){
         BudgetDomain(title = "Comida", price = 100.0, percent = 20.0),
         BudgetDomain(title = "Transporte", price = 200.0, percent = 30.0),
         BudgetDomain(title = "Salud", price = 300.0, percent = 40.0),
-
     )
     ReportScreen(budgets = budgets, onBack = {})
 }
