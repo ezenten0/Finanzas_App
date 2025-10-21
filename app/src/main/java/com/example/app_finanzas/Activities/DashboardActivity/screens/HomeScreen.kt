@@ -25,7 +25,6 @@ fun HomeScreen() {
             BottomNavigationBar(
                 selectedItemId = when (currentRoute) {
                     "main" -> R.id.wallet
-                    "qr" -> R.id.qrpay
                     // Puedes agregar más casos para otras pantallas
                     else -> 0 // Ninguno seleccionado por defecto
                 },
@@ -33,7 +32,6 @@ fun HomeScreen() {
                      val route = when (routeId) {
                         R.id.wallet -> "main"
                         R.id.future ->  "splash"
-                        R.id.qrpay -> "qr"
                         else -> "main"
                     }
                     navController.navigate(route) {

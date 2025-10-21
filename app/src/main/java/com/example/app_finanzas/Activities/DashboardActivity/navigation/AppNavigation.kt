@@ -12,10 +12,6 @@ import com.example.app_finanzas.Activities.DashboardActivity.screens.SplashScree
 import com.example.app_finanzas.Activities.ReportActivity.screens.ReportScreen
 import com.example.app_finanzas.Domain.BudgetDomain
 import com.example.app_finanzas.Domain.ExpenseDomain
-import com.example.app_finanzas.Activities.qrActivity.screens.qrScreen
-
-
-
 
 @Composable
 fun AppNavigation(navController: NavHostController, paddingValues: PaddingValues) {
@@ -37,6 +33,7 @@ fun AppNavigation(navController: NavHostController, paddingValues: PaddingValues
         composable("splash") {
             SplashScreen(onTimeout = {
                 navController.navigate("report") {
+                    // Reemplaza splash con report para que el usuario no pueda volver atrás
                     popUpTo("splash") { inclusive = true }
                 }
             })
@@ -50,9 +47,6 @@ fun AppNavigation(navController: NavHostController, paddingValues: PaddingValues
                 budgets = budgets,
                 onBack = { navController.popBackStack() }
             )
-        }
-        composable("qr"){
-            qrScreen("user")
         }
     }
 }

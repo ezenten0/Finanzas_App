@@ -35,7 +35,7 @@ fun SplashScreen(onTimeout: () -> Unit) {
 
     LaunchedEffect(key1 = true) {
         startAnimation = true
-        delay(2000) // Espera 2 segundos
+        delay(3000) // Espera 3 segundos
         onTimeout()
     }
 
@@ -61,4 +61,12 @@ fun SplashContent(modifier: Modifier = Modifier) {
             contentDescription = "Logo"
         )
     }
+}
+
+
+@Preview
+@Composable
+fun SplashScreenPreview() {
+    // En el preview, llamamos a SplashContent directamente sin la animación de alpha
+    SplashContent()
 }
