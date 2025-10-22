@@ -1,4 +1,4 @@
-package com.example.app_finanzas.activities.introactivity
+package com.example.app_finanzas.Activities.IntroActivity
 
 import android.content.Intent
 import android.os.Bundle
