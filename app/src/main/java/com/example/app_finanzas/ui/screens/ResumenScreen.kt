@@ -27,7 +27,7 @@ fun ResumenScreen(navController: NavController, viewModel: UsuarioViewModel) {
         Text("Contraseña: ${"*".repeat(estado.clave.length)}")
         Text("Terminos:${if (estado.aceptaTerminos) "Aceptados" else "No aceptados"}")
         Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = { navController.navigate("main") }) {
+        Button(onClick = { navController.navigate("home") }) {
             Text("Continuar")
         }
     }
