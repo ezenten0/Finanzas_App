@@ -32,6 +32,7 @@ fun HomeScreen() {
                      val route = when (routeId) {
                         R.id.wallet -> "main"
                         R.id.future ->  "splash"
+                         R.id.qrpay -> "qrPay"
                         else -> "main"
                     }
                     navController.navigate(route) {

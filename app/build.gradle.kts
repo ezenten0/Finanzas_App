@@ -64,4 +64,14 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     implementation("androidx.constraintlayout:constraintlayout-compose:1.1.1")
+
+    val cameraxVersion = "1.3.4"
+    // 🔹 CameraX core libraries
+    implementation("androidx.camera:camera-core:$cameraxVersion")
+    implementation("androidx.camera:camera-camera2:$cameraxVersion")
+    implementation("androidx.camera:camera-lifecycle:$cameraxVersion")
+    implementation("androidx.camera:camera-view:$cameraxVersion")
+
+    // 🔹 (Opcional) Para usar análisis de imágenes (QR con ML Kit)
+    implementation("com.google.mlkit:barcode-scanning:17.3.0")
 }
