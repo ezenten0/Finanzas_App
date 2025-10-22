@@ -1,4 +1,4 @@
-package com.example.app_finanzas.activities.introactivity.screens
+package com.example.app_finanzas.Activities.IntroActivity.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
