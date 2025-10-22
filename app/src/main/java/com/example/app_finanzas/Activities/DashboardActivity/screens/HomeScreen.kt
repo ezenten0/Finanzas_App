@@ -10,7 +10,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.app_finanzas.Activities.DashboardActivity.components.BottomNavigationBar
-import com.example.app_finanzas.Activities.navigation.AppNavigation
+import com.example.app_finanzas.Activities.DashboardActivity.navigation.AppNavigation
 import com.example.app_finanzas.R
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
