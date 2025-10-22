@@ -18,6 +18,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -29,6 +30,7 @@ fun RegistroScreen(
     viewModel: UsuarioViewModel
 ) {
     val estado by viewModel.estado.collectAsState()
+    val context = LocalContext.current
 
     Column(
         Modifier
@@ -68,7 +70,7 @@ fun RegistroScreen(
         OutlinedTextField(
             value = estado.clave,
             onValueChange = viewModel::onClaveChange,
-            label = { Text("Contrasea") },
+            label = { Text("Contraseña") },
             visualTransformation = PasswordVisualTransformation(),
             isError = estado.errores.clave != null,
             supportingText = {
@@ -106,7 +108,8 @@ fun RegistroScreen(
         Button(
             onClick = {
                 if (viewModel.validarFormulario()) {
-                 navController.navigate("resumen") //unchecked
+                 viewModel.guardarDatosEnArchivo(context)
+                 navController.navigate("resumen")
                 }
             },
             modifier = Modifier.fillMaxWidth()
