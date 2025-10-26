@@ -1,16 +1,16 @@
 package com.example.app_finanzas
 
 import android.os.Bundle
+import android.content.Context
+import android.content.Intent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import com.example.app_finanzas.data.user.UserProfile
+import com.example.app_finanzas.home.HomeRoute
 import com.example.app_finanzas.ui.theme.App_FinanzasTheme
 
 class MainActivity : ComponentActivity() {
@@ -19,29 +19,27 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             App_FinanzasTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
+                val userName = intent.getStringExtra(EXTRA_USER_NAME).orEmpty()
+                val userEmail = intent.getStringExtra(EXTRA_USER_EMAIL).orEmpty()
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    HomeRoute(
+                        userName = userName,
+                        userEmail = userEmail
                     )
                 }
             }
         }
     }
-}
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
+    companion object {
+        private const val EXTRA_USER_NAME = "extra_user_name"
+        private const val EXTRA_USER_EMAIL = "extra_user_email"
 
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    App_FinanzasTheme {
-        Greeting("Android")
+        fun createIntent(context: Context, profile: UserProfile): Intent {
+            return Intent(context, MainActivity::class.java).apply {
+                putExtra(EXTRA_USER_NAME, profile.name)
+                putExtra(EXTRA_USER_EMAIL, profile.email)
+            }
+        }
     }
 }
