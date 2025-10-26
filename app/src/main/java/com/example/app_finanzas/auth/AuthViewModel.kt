@@ -1,6 +1,5 @@
 package com.example.app_finanzas.auth
 
-import android.util.Patterns
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
@@ -57,10 +56,14 @@ class AuthViewModel(
 
     fun onSubmit() {
         val state = _uiState.value
-        val nameError = validateName(state)
-        val emailError = validateEmail(state.email)
-        val passwordError = validatePassword(state)
-        val confirmPasswordError = validateConfirmPassword(state)
+        val nameError = AuthValidator.validateName(state.mode, state.name)
+        val emailError = AuthValidator.validateEmail(state.email)
+        val passwordError = AuthValidator.validatePassword(state.mode, state.password)
+        val confirmPasswordError = AuthValidator.validateConfirmPassword(
+            state.mode,
+            state.password,
+            state.confirmPassword
+        )
 
         if (
             nameError != null ||
@@ -113,51 +116,6 @@ class AuthViewModel(
         )
     }
 
-    private fun validateName(state: AuthUiState): String? {
-        return if (state.mode == AuthMode.REGISTER && state.name.isBlank()) {
-            "El nombre es obligatorio."
-        } else {
-            null
-        }
-    }
-
-    private fun validateEmail(email: String): String? {
-        val trimmed = email.trim()
-        if (trimmed.isEmpty()) {
-            return "El correo es obligatorio."
-        }
-        return if (!Patterns.EMAIL_ADDRESS.matcher(trimmed).matches()) {
-            "Ingresa un correo válido."
-        } else {
-            null
-        }
-    }
-
-    private fun validatePassword(state: AuthUiState): String? {
-        val password = state.password
-        if (password.isEmpty()) {
-            return "La contraseña es obligatoria."
-        }
-
-        return if (state.mode == AuthMode.REGISTER && !isStrongPassword(password)) {
-            "Debe tener 8 caracteres, una mayúscula, una minúscula y un número."
-        } else {
-            null
-        }
-    }
-
-    private fun validateConfirmPassword(state: AuthUiState): String? {
-        return if (state.mode == AuthMode.REGISTER && state.password != state.confirmPassword) {
-            "Las contraseñas no coinciden."
-        } else {
-            null
-        }
-    }
-
-    private fun isStrongPassword(password: String): Boolean {
-        val hasUppercase = password.any { it.isUpperCase() }
-        val hasLowercase = password.any { it.isLowerCase() }
-        val hasDigit = password.any { it.isDigit() }
-        return password.length >= 8 && hasUppercase && hasLowercase && hasDigit
-    }
+    // Validation logic now lives in [AuthValidator] to keep this ViewModel focused on
+    // UI state management and make the rules straightforward to test.
 }

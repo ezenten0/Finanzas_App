@@ -1,7 +1,6 @@
-@file:Suppress("DEPRECATION")
-
 package com.example.app_finanzas.home
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,7 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -19,7 +18,6 @@ import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -38,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.app_finanzas.data.transaction.TransactionRepository
 import com.example.app_finanzas.home.model.HomeUiState
 import com.example.app_finanzas.home.model.Transaction
 import com.example.app_finanzas.home.model.TransactionType
@@ -47,23 +46,39 @@ import java.util.Locale
 
 private val currencyFormatter: NumberFormat = NumberFormat.getCurrencyInstance(Locale("es", "ES"))
 
+/**
+ * Entry point composable that wires the [HomeViewModel] to the UI and reacts to
+ * user profile updates coming from the authentication flow.
+ */
 @Composable
 fun HomeRoute(
     userName: String,
     userEmail: String,
-    viewModel: HomeViewModel = viewModel()
+    transactionRepository: TransactionRepository,
+    onTransactionSelected: (Int) -> Unit,
+    viewModel: HomeViewModel = viewModel(
+        factory = HomeViewModelFactory(transactionRepository)
+    )
 ) {
     val state by viewModel.uiState
     LaunchedEffect(userName, userEmail) {
         viewModel.updateUserProfile(userName, userEmail)
     }
-    HomeScreen(state = state)
+    HomeScreen(
+        state = state,
+        onTransactionSelected = onTransactionSelected
+    )
 }
 
+/**
+ * Stateless representation of the dashboard that displays the balance summary and
+ * the recent transaction history.
+ */
 @Composable
 fun HomeScreen(
     state: HomeUiState,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onTransactionSelected: (Int) -> Unit = {}
 ) {
     Scaffold(
         topBar = {
@@ -94,13 +109,15 @@ fun HomeScreen(
                 items = state.transactions,
                 key = { it.id }
             ) { transaction ->
-                TransactionCard(transaction = transaction)
+                TransactionCard(
+                    transaction = transaction,
+                    onClick = { onTransactionSelected(transaction.id) }
+                )
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HomeTopBar(
     userName: String,
@@ -276,10 +293,18 @@ private fun TransactionsHeader() {
     }
 }
 
+/**
+ * Card that displays a single transaction and triggers navigation when tapped.
+ */
 @Composable
-private fun TransactionCard(transaction: Transaction) {
+private fun TransactionCard(
+    transaction: Transaction,
+    onClick: () -> Unit = {}
+) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
@@ -324,7 +349,7 @@ private fun TransactionCard(transaction: Transaction) {
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = transaction.date,
+                    text = formatDateLabel(transaction.date),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -348,6 +373,13 @@ private fun formatCurrency(amount: Double): String {
     return currencyFormatter.format(amount)
 }
 
+private fun formatDateLabel(raw: String): String {
+    return runCatching {
+        val parsed = java.time.LocalDate.parse(raw)
+        parsed.format(java.time.format.DateTimeFormatter.ofPattern("d MMM", Locale("es", "ES")))
+    }.getOrDefault(raw)
+}
+
 @Preview(showBackground = true)
 @Composable
 private fun HomeScreenPreview() {
@@ -367,7 +399,7 @@ private fun HomeScreenPreview() {
                         amount = 1450.0,
                         type = TransactionType.INCOME,
                         category = "Salario",
-                        date = "5 Oct"
+                        date = "2024-10-05"
                     ),
                     Transaction(
                         id = 2,
@@ -376,7 +408,7 @@ private fun HomeScreenPreview() {
                         amount = 210.5,
                         type = TransactionType.EXPENSE,
                         category = "Alimentos",
-                        date = "6 Oct"
+                        date = "2024-10-06"
                     )
                 )
             )

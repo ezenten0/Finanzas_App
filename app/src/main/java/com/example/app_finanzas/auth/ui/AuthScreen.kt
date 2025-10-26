@@ -23,6 +23,7 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -178,7 +179,7 @@ private fun AuthTextField(
         },
         keyboardOptions = keyboardOptions.copy(imeAction = imeAction),
         singleLine = true,
-        colors = TextFieldDefaults.colors()
+        colors = TextFieldDefaults.outlinedTextFieldColors()
     )
 }
 
@@ -215,7 +216,7 @@ private fun PasswordField(
             keyboardType = KeyboardType.Password,
             imeAction = imeAction
         ),
-        colors = TextFieldDefaults.colors()
+        colors = TextFieldDefaults.outlinedTextFieldColors()
     )
 }
 
