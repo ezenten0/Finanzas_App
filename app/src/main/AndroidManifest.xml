@@ -11,8 +11,8 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.App_Finanzas">
         <activity
-            android:name=".activities.introactivity.IntroActivity"
-            android:exported="true" >
+            android:name=".activities.intro.IntroActivity"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -22,8 +22,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.App_Finanzas">
-        </activity>
+            android:theme="@style/Theme.App_Finanzas" />
     </application>
 
 </manifest>
