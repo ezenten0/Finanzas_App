@@ -2,6 +2,8 @@ package com.example.app_finanzas.home
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,12 +15,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -61,7 +66,9 @@ fun HomeRoute(
     userName: String,
     userEmail: String,
     transactionRepository: TransactionRepository,
+    onAddTransaction: () -> Unit,
     onTransactionSelected: (Int) -> Unit,
+    onShowInsights: () -> Unit,
     viewModel: HomeViewModel = viewModel(
         factory = HomeViewModelFactory(transactionRepository)
     )
@@ -72,7 +79,9 @@ fun HomeRoute(
     }
     HomeScreen(
         state = state,
-        onTransactionSelected = onTransactionSelected
+        onTransactionSelected = onTransactionSelected,
+        onAddTransaction = onAddTransaction,
+        onShowInsights = onShowInsights
     )
 }
 
@@ -85,13 +94,24 @@ fun HomeRoute(
 fun HomeScreen(
     state: HomeUiState,
     modifier: Modifier = Modifier,
-    onTransactionSelected: (Int) -> Unit = {}
+    onTransactionSelected: (Int) -> Unit = {},
+    onAddTransaction: () -> Unit = {},
+    onShowInsights: () -> Unit = {}
 ) {
     Scaffold(
         topBar = {
             HomeTopBar(
                 userName = state.userName,
-                userEmail = state.userEmail
+                userEmail = state.userEmail,
+                onShowInsights = onShowInsights
+            )
+        },
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                onClick = onAddTransaction,
+                icon = { Icon(imageVector = Icons.Rounded.Add, contentDescription = "Añadir movimiento") },
+                text = { Text(text = "Registrar") },
+                elevation = FloatingActionButtonDefaults.elevation(6.dp)
             )
         }
     ) { innerPadding ->
@@ -129,7 +149,8 @@ fun HomeScreen(
 @Composable
 private fun HomeTopBar(
     userName: String,
-    userEmail: String
+    userEmail: String,
+    onShowInsights: () -> Unit
 ) {
     val greetingName = userName.ifBlank { "Usuario" }
     TopAppBar(
@@ -154,7 +175,7 @@ private fun HomeTopBar(
             }
         },
         actions = {
-            IconButton(onClick = { }) {
+            IconButton(onClick = onShowInsights) {
                 Icon(
                     imageVector = Icons.Rounded.Notifications,
                     contentDescription = "Notificaciones"
@@ -169,6 +190,7 @@ private fun HomeTopBar(
 }
 
 @Composable
+@OptIn(ExperimentalAnimationApi::class)
 private fun BalanceSummaryCard(
     totalBalance: Double,
     totalIncome: Double,
@@ -195,11 +217,16 @@ private fun BalanceSummaryCard(
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f)
                 )
-                Text(
-                    text = formatCurrency(totalBalance),
-                    style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
+                AnimatedContent(
+                    targetState = totalBalance,
+                    label = "balanceAnimation"
+                ) { value ->
+                    Text(
+                        text = formatCurrency(value),
+                        style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),

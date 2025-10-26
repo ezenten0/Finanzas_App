@@ -2,94 +2,254 @@
 
 package com.example.app_finanzas.budgets
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.animateItemPlacement
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.PieChart
+import androidx.compose.material.icons.rounded.Savings
+import androidx.compose.material3.AlertDialogDefaults
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.input.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.app_finanzas.data.budget.BudgetGoal
+import com.example.app_finanzas.data.budget.BudgetRepository
 import com.example.app_finanzas.data.transaction.TransactionRepository
-import com.example.app_finanzas.home.analytics.TransactionAnalytics
 import com.example.app_finanzas.home.analytics.BudgetProgress
-import com.example.app_finanzas.home.model.Transaction
+import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.util.Locale
 
 private val budgetNumberFormat: NumberFormat = NumberFormat.getCurrencyInstance(Locale("es", "ES"))
-private val defaultBudgets = mapOf(
-    "Alimentos" to 300.0,
-    "Entretenimiento" to 120.0,
-    "Social" to 150.0,
-    "Inversiones" to 200.0
-)
 
-/**
- * Route that displays the progress of monthly budgets using the stored transactions.
- */
 @Composable
 fun BudgetsRoute(
     transactionRepository: TransactionRepository,
-    modifier: Modifier = Modifier
+    budgetRepository: BudgetRepository,
+    modifier: Modifier = Modifier,
+    viewModel: BudgetsViewModel = viewModel(
+        factory = BudgetsViewModel.Factory(budgetRepository, transactionRepository)
+    )
 ) {
-    val transactions by transactionRepository.observeTransactions().collectAsState(initial = emptyList())
-    BudgetsScreen(transactions = transactions, modifier = modifier)
+    val state by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    var editingGoal by remember { mutableStateOf<BudgetGoal?>(null) }
+
+    BudgetsScreen(
+        state = state,
+        snackbarHostState = snackbarHostState,
+        onAddBudget = {
+            editingGoal = BudgetGoal(category = "", limit = 0.0)
+        },
+        onEditBudget = { goal -> editingGoal = goal },
+        onDeleteBudget = { goal ->
+            viewModel.deleteBudget(goal.id)
+            scope.launch { snackbarHostState.showSnackbar("Meta eliminada") }
+        },
+        modifier = modifier
+    )
+
+    editingGoal?.let { goal ->
+        BudgetEditorDialog(
+            goal = goal,
+            onDismiss = { editingGoal = null },
+            onConfirm = { updated ->
+                viewModel.saveBudget(updated)
+                scope.launch { snackbarHostState.showSnackbar("Meta guardada") }
+                editingGoal = null
+            }
+        )
+    }
 }
 
-/**
- * Visualizes budget usage per category with progress indicators.
- */
 @Composable
 fun BudgetsScreen(
-    transactions: List<Transaction>,
+    state: BudgetsUiState,
+    snackbarHostState: SnackbarHostState,
+    onAddBudget: () -> Unit,
+    onEditBudget: (BudgetGoal) -> Unit,
+    onDeleteBudget: (BudgetGoal) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val budgetProgress = remember(transactions) {
-        TransactionAnalytics.calculateBudgetProgress(transactions, defaultBudgets)
-    }
+    val listState = rememberLazyListState()
 
     Scaffold(
+        modifier = modifier,
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text(text = "Presupuestos", fontWeight = FontWeight.Bold) },
+                title = {
+                    Text(
+                        text = "Presupuestos",
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
+        },
+        floatingActionButton = {
+            AnimatedVisibility(visible = !state.isLoading) {
+                ExtendedFloatingActionButton(
+                    onClick = onAddBudget,
+                    icon = { Icon(imageVector = Icons.Rounded.Add, contentDescription = null) },
+                    text = { Text(text = "Nueva meta") },
+                    shape = RoundedCornerShape(28.dp)
+                )
+            }
         }
     ) { innerPadding ->
-        LazyColumn(
-            modifier = modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            items(budgetProgress, key = { it.category }) { progress ->
-                BudgetProgressCard(progress = progress)
+        if (state.isLoading) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                CircularProgressIndicator()
+                Text(
+                    text = "Cargando metas", 
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(top = 12.dp)
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                state = listState,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                if (state.progress.isEmpty()) {
+                    item {
+                        EmptyBudgetsState(onAddBudget = onAddBudget)
+                    }
+                } else {
+                    items(state.progress, key = { it.category }) { progress ->
+                        val goal = state.goals.firstOrNull { it.category == progress.category }
+                        BudgetProgressCard(
+                            progress = progress,
+                            onEdit = { goal?.let(onEditBudget) },
+                            onDelete = { goal?.let(onDeleteBudget) },
+                            modifier = Modifier.animateItemPlacement()
+                        )
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun BudgetProgressCard(progress: BudgetProgress) {
+private fun EmptyBudgetsState(onAddBudget: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Savings,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = "Crea tu primera meta de ahorro",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+            Text(
+                text = "Define límites personalizados para tus categorías y controla tus gastos con alertas visuales.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+            Button(onClick = onAddBudget, shape = RoundedCornerShape(20.dp)) {
+                Icon(imageVector = Icons.Rounded.Add, contentDescription = null)
+                Spacer(modifier = Modifier.size(8.dp))
+                Text(text = "Crear meta")
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalAnimationApi::class)
+@Composable
+@OptIn(ExperimentalFoundationApi::class)
+private fun BudgetProgressCard(
+    progress: BudgetProgress,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val alertColor = when {
+        progress.progress >= 1.0 -> MaterialTheme.colorScheme.error
+        progress.progress >= 0.75 -> MaterialTheme.colorScheme.tertiary
+        else -> MaterialTheme.colorScheme.primary
+    }
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(
@@ -98,17 +258,123 @@ private fun BudgetProgressCard(progress: BudgetProgress) {
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(text = progress.category, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            LinearProgressIndicator(
-                progress = progress.progress.toFloat(),
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.primary
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Rounded.PieChart,
+                        contentDescription = null,
+                        tint = alertColor,
+                        modifier = Modifier.padding(end = 8.dp)
+                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = progress.category,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        AnimatedContent(
+                            targetState = progress.spent,
+                            transitionSpec = { fadeIn() togetherWith fadeOut() },
+                            label = "spentAnimation"
+                        ) { spent ->
+                            Text(
+                                text = "${budgetNumberFormat.format(spent)} de ${budgetNumberFormat.format(progress.limit)}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    IconButton(onClick = onEdit) {
+                        Icon(imageVector = Icons.Rounded.Edit, contentDescription = "Editar meta")
+                    }
+                    IconButton(onClick = onDelete) {
+                        Icon(imageVector = Icons.Rounded.Delete, contentDescription = "Eliminar meta")
+                    }
+                }
+            }
+
+            LinearProgressIndicator(
+                progress = progress.progress.toFloat().coerceIn(0f, 1f),
+                modifier = Modifier.fillMaxWidth(),
+                color = alertColor
             )
-            Text(
-                text = "${budgetNumberFormat.format(progress.spent)} de ${budgetNumberFormat.format(progress.limit)}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+
+            AnimatedVisibility(visible = progress.progress >= 0.75) {
+                Text(
+                    text = when {
+                        progress.progress >= 1.0 -> "Has superado tu presupuesto. Revisa tus gastos."
+                        else -> "Atención, has consumido más del 75% del presupuesto."
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = alertColor,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
         }
     }
+}
+
+@Composable
+private fun BudgetEditorDialog(
+    goal: BudgetGoal,
+    onDismiss: () -> Unit,
+    onConfirm: (BudgetGoal) -> Unit
+) {
+    var category by rememberSaveable(goal.id, goal.category) { mutableStateOf(goal.category) }
+    var limit by rememberSaveable(goal.id, goal.limit) { mutableStateOf(goal.limit.toString()) }
+    val isEditing = goal.id != 0
+
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = {
+                val parsedLimit = limit.replace(",", ".").toDoubleOrNull()?.coerceAtLeast(0.0) ?: 0.0
+                if (category.isNotBlank() && parsedLimit > 0.0) {
+                    onConfirm(goal.copy(category = category.trim(), limit = parsedLimit))
+                }
+            }) {
+                Text(text = if (isEditing) "Actualizar" else "Guardar")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(text = "Cancelar") }
+        },
+        title = {
+            Text(
+                text = if (isEditing) "Editar meta" else "Nueva meta",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = category,
+                    onValueChange = { category = it },
+                    label = { Text(text = "Categoría") },
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = limit,
+                    onValueChange = { limit = it },
+                    label = { Text(text = "Límite mensual") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+                Text(
+                    text = "Recibirás alertas cuando superes el 75% del límite.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        shape = RoundedCornerShape(24.dp),
+        containerColor = AlertDialogDefaults.containerColor
+    )
 }

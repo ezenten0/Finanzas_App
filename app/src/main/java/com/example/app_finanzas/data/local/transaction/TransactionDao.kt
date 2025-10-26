@@ -38,5 +38,11 @@ interface TransactionDao {
      * Inserts or updates a list of transactions, enabling bulk seeding or sync operations.
      */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertTransaction(transaction: TransactionEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertTransactions(transactions: List<TransactionEntity>)
+
+    @Query("DELETE FROM transactions WHERE id = :transactionId")
+    suspend fun deleteTransaction(transactionId: Int)
 }

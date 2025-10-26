@@ -13,7 +13,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -32,6 +34,7 @@ import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.app_finanzas.data.transaction.TransactionRepository
 import com.example.app_finanzas.home.model.Transaction
@@ -53,12 +56,14 @@ private val numberFormat: NumberFormat = NumberFormat.getCurrencyInstance(Locale
 fun TransactionsRoute(
     transactionRepository: TransactionRepository,
     onTransactionSelected: (Int) -> Unit,
+    onAddTransaction: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val transactions by transactionRepository.observeTransactions().collectAsState(initial = emptyList())
     TransactionsScreen(
         transactions = transactions,
         onTransactionSelected = onTransactionSelected,
+        onAddTransaction = onAddTransaction,
         modifier = modifier
     )
 }
@@ -71,12 +76,18 @@ fun TransactionsRoute(
 fun TransactionsScreen(
     transactions: List<Transaction>,
     onTransactionSelected: (Int) -> Unit,
+    onAddTransaction: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(text = "Historial de movimientos", fontWeight = FontWeight.Bold) },
+                actions = {
+                    IconButton(onClick = onAddTransaction) {
+                        Icon(imageVector = Icons.Rounded.Add, contentDescription = "Añadir movimiento")
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
                 )
@@ -90,11 +101,15 @@ fun TransactionsScreen(
                 .padding(horizontal = 20.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            items(transactions, key = { it.id }) { transaction ->
-                TransactionListItem(
-                    transaction = transaction,
-                    onClick = { onTransactionSelected(transaction.id) }
-                )
+            if (transactions.isEmpty()) {
+                item { EmptyTransactionsState(onAddTransaction = onAddTransaction) }
+            } else {
+                items(transactions, key = { it.id }) { transaction ->
+                    TransactionListItem(
+                        transaction = transaction,
+                        onClick = { onTransactionSelected(transaction.id) }
+                    )
+                }
             }
         }
     }
@@ -109,6 +124,7 @@ fun TransactionDetailRoute(
     transactionRepository: TransactionRepository,
     transactionId: Int?,
     onBack: () -> Unit,
+    onEdit: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val transactionState by produceState<Transaction?>(initialValue = null, transactionId) {
@@ -118,6 +134,7 @@ fun TransactionDetailRoute(
     TransactionDetailScreen(
         transaction = transactionState,
         onBack = onBack,
+        onEdit = onEdit,
         modifier = modifier
     )
 }
@@ -130,6 +147,7 @@ fun TransactionDetailRoute(
 fun TransactionDetailScreen(
     transaction: Transaction?,
     onBack: () -> Unit,
+    onEdit: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -139,6 +157,13 @@ fun TransactionDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(imageVector = Icons.Rounded.ArrowBack, contentDescription = "Volver")
+                    }
+                },
+                actions = {
+                    transaction?.let {
+                        IconButton(onClick = { onEdit(it.id) }) {
+                            Icon(imageVector = Icons.Rounded.Edit, contentDescription = "Editar movimiento")
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -168,6 +193,37 @@ fun TransactionDetailScreen(
                     .padding(innerPadding)
                     .padding(horizontal = 24.dp, vertical = 20.dp)
             )
+        }
+    }
+}
+
+@Composable
+private fun EmptyTransactionsState(onAddTransaction: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Aún no hay movimientos",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "Registra tu primer ingreso o gasto para comenzar a ver estadísticas.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+            Button(onClick = onAddTransaction) {
+                Text(text = "Registrar movimiento")
+            }
         }
     }
 }
