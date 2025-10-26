@@ -5,7 +5,7 @@ import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import com.example.app_finanzas.MainActivity
+import com.example.app_finanzas.activities.auth.AuthActivity
 import com.example.app_finanzas.activities.intro.screens.IntroScreen
 import com.example.app_finanzas.ui.theme.App_FinanzasTheme
 
@@ -17,7 +17,8 @@ class IntroActivity : AppCompatActivity() {
             App_FinanzasTheme {
                 IntroScreen(
                     onStartClick = {
-                        startActivity(Intent(this, MainActivity::class.java))
+                        startActivity(Intent(this, AuthActivity::class.java))
+                        finish()
                     }
                 )
             }

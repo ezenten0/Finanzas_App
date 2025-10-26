@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -15,8 +16,7 @@ import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -25,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -41,13 +42,18 @@ import com.example.app_finanzas.ui.theme.App_FinanzasTheme
 import java.text.NumberFormat
 import java.util.Locale
 
-private val currencyFormatter: NumberFormat = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("es-ES"))
+private val currencyFormatter: NumberFormat = NumberFormat.getCurrencyInstance(Locale("es", "ES"))
 
 @Composable
 fun HomeRoute(
+    userName: String,
+    userEmail: String,
     viewModel: HomeViewModel = viewModel()
 ) {
     val state by viewModel.uiState
+    LaunchedEffect(userName, userEmail) {
+        viewModel.updateUserProfile(userName, userEmail)
+    }
     HomeScreen(state = state)
 }
 
@@ -57,7 +63,12 @@ fun HomeScreen(
     modifier: Modifier = Modifier
 ) {
     Scaffold(
-        topBar = { HomeTopBar() }
+        topBar = {
+            HomeTopBar(
+                userName = state.userName,
+                userEmail = state.userEmail
+            )
+        }
     ) { innerPadding ->
         LazyColumn(
             modifier = modifier
@@ -86,14 +97,17 @@ fun HomeScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun HomeTopBar() {
+private fun HomeTopBar(
+    userName: String,
+    userEmail: String
+) {
+    val greetingName = userName.ifBlank { "Usuario" }
     TopAppBar(
         title = {
             Column {
                 Text(
-                    text = "Hola, Laura",
+                    text = "Hola, $greetingName",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -101,6 +115,13 @@ private fun HomeTopBar() {
                     text = "Tu resumen financiero",
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                 )
+                if (userEmail.isNotBlank()) {
+                    Text(
+                        text = userEmail,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         },
         actions = {
@@ -288,7 +309,7 @@ private fun TransactionCard(transaction: Transaction) {
                     color = amountColor(transaction.type)
                 )
             }
-            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+            Divider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -329,6 +350,8 @@ private fun HomeScreenPreview() {
     App_FinanzasTheme {
         HomeScreen(
             state = HomeUiState(
+                userName = "Laura",
+                userEmail = "laura@example.com",
                 totalBalance = 1634.26,
                 totalIncome = 1855.75,
                 totalExpense = 221.49,

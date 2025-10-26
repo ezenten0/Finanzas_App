@@ -76,6 +76,14 @@ class HomeViewModel : ViewModel() {
         updateState(transactions)
     }
 
+    fun updateUserProfile(name: String, email: String) {
+        val displayName = name.trim().ifBlank { "Usuario" }
+        _uiState.value = _uiState.value.copy(
+            userName = displayName,
+            userEmail = email.trim()
+        )
+    }
+
     private fun updateState(transactions: List<Transaction>) {
         val totalIncome = transactions
             .filter { it.type == TransactionType.INCOME }
@@ -84,7 +92,7 @@ class HomeViewModel : ViewModel() {
             .filter { it.type == TransactionType.EXPENSE }
             .sumOf { it.amount }
 
-        _uiState.value = HomeUiState(
+        _uiState.value = _uiState.value.copy(
             totalBalance = totalIncome - totalExpense,
             totalIncome = totalIncome,
             totalExpense = totalExpense,
