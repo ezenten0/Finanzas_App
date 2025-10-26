@@ -51,12 +51,33 @@ class TransactionRepository(
     }
 
     /**
+     * Inserts or updates a single transaction and returns the resulting id so the
+     * UI can react to the new entry immediately.
+     */
+    suspend fun upsertTransaction(transaction: Transaction): Int {
+        return withContext(Dispatchers.IO) {
+            val entity = transaction.toEntity()
+            val generatedId = transactionDao.upsertTransaction(entity).toInt()
+            if (entity.id != 0) entity.id else generatedId
+        }
+    }
+
+    /**
      * Inserts a transaction list, typically used by tests or future sync flows.
      */
     suspend fun upsertTransactions(transactions: List<Transaction>) {
         withContext(Dispatchers.IO) {
             val entities = transactions.map { it.toEntity() }
             transactionDao.upsertTransactions(entities)
+        }
+    }
+
+    /**
+     * Removes a transaction when the user decides to discard it.
+     */
+    suspend fun deleteTransaction(transactionId: Int) {
+        withContext(Dispatchers.IO) {
+            transactionDao.deleteTransaction(transactionId)
         }
     }
 

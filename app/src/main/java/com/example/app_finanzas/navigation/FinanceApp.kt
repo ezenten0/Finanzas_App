@@ -10,7 +10,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.Assessment
 import androidx.compose.material.icons.rounded.BarChart
+import androidx.compose.material.icons.rounded.EditNote
 import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.Lightbulb
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -24,12 +26,17 @@ import androidx.navigation.NavDestination
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.navArgument
+import androidx.navigation.NavType
+import com.example.app_finanzas.data.budget.BudgetRepository
 import com.example.app_finanzas.data.transaction.TransactionRepository
 import com.example.app_finanzas.home.HomeRoute
 import com.example.app_finanzas.transactions.TransactionDetailRoute
 import com.example.app_finanzas.transactions.TransactionsRoute
 import com.example.app_finanzas.statistics.StatisticsRoute
 import com.example.app_finanzas.budgets.BudgetsRoute
+import com.example.app_finanzas.transactions.form.TransactionFormRoute
+import com.example.app_finanzas.insights.InsightsRoute
 import com.google.accompanist.navigation.animation.AnimatedNavHost
 import com.google.accompanist.navigation.animation.composable
 import com.google.accompanist.navigation.animation.rememberAnimatedNavController
@@ -42,6 +49,7 @@ import com.google.accompanist.navigation.animation.rememberAnimatedNavController
 @Composable
 fun FinanceApp(
     transactionRepository: TransactionRepository,
+    budgetRepository: BudgetRepository,
     userName: String,
     userEmail: String,
     modifier: Modifier = Modifier
@@ -94,8 +102,14 @@ fun FinanceApp(
                     userName = userName,
                     userEmail = userEmail,
                     transactionRepository = transactionRepository,
+                    onAddTransaction = {
+                        navController.navigate(FinanceDestination.TransactionForm.route)
+                    },
                     onTransactionSelected = { id ->
                         navController.navigate(FinanceDestination.TransactionDetail.createRoute(id))
+                    },
+                    onShowInsights = {
+                        navController.navigate(FinanceDestination.Insights.route)
                     }
                 )
             }
@@ -104,6 +118,9 @@ fun FinanceApp(
                     transactionRepository = transactionRepository,
                     onTransactionSelected = { id ->
                         navController.navigate(FinanceDestination.TransactionDetail.createRoute(id))
+                    },
+                    onAddTransaction = {
+                        navController.navigate(FinanceDestination.TransactionForm.route)
                     }
                 )
             }
@@ -111,13 +128,44 @@ fun FinanceApp(
                 StatisticsRoute(transactionRepository = transactionRepository)
             }
             composable(FinanceDestination.Budgets.route) {
-                BudgetsRoute(transactionRepository = transactionRepository)
+                BudgetsRoute(
+                    transactionRepository = transactionRepository,
+                    budgetRepository = budgetRepository
+                )
             }
             composable(FinanceDestination.TransactionDetail.route) { backStackEntry ->
                 val transactionId = backStackEntry.arguments?.getString(FinanceDestination.TransactionDetail.transactionIdArg)?.toIntOrNull()
                 TransactionDetailRoute(
                     transactionRepository = transactionRepository,
                     transactionId = transactionId,
+                    onBack = { navController.popBackStack() },
+                    onEdit = { id ->
+                        navController.navigate(FinanceDestination.TransactionForm.createRoute(id))
+                    }
+                )
+            }
+            composable(FinanceDestination.TransactionForm.route) {
+                TransactionFormRoute(
+                    transactionRepository = transactionRepository,
+                    transactionId = null,
+                    onDismiss = { navController.popBackStack() }
+                )
+            }
+            composable(
+                route = FinanceDestination.TransactionForm.editRoute,
+                arguments = listOf(navArgument(FinanceDestination.TransactionForm.transactionIdArg) { type = NavType.IntType })
+            ) { backStackEntry ->
+                val transactionId = backStackEntry.arguments?.getInt(FinanceDestination.TransactionForm.transactionIdArg)
+                TransactionFormRoute(
+                    transactionRepository = transactionRepository,
+                    transactionId = transactionId,
+                    onDismiss = { navController.popBackStack() }
+                )
+            }
+            composable(FinanceDestination.Insights.route) {
+                InsightsRoute(
+                    transactionRepository = transactionRepository,
+                    budgetRepository = budgetRepository,
                     onBack = { navController.popBackStack() }
                 )
             }
@@ -179,6 +227,14 @@ sealed class FinanceDestination(
         const val transactionIdArg = "TRANSACTION_ID"
         fun createRoute(id: Int): String = "transactionDetail/$id"
     }
+
+    object TransactionForm : FinanceDestination("transactionForm", "Registrar", Icons.Rounded.EditNote) {
+        const val transactionIdArg = "transactionId"
+        val editRoute: String = "transactionForm/{$transactionIdArg}"
+        fun createRoute(id: Int? = null): String = id?.let { "transactionForm/$it" } ?: route
+    }
+
+    object Insights : FinanceDestination("insights", "Insights", Icons.Rounded.Lightbulb)
 
     companion object {
         val bottomDestinations = listOf(Home, Transactions, Statistics, Budgets)
