@@ -179,7 +179,7 @@ private fun AuthTextField(
         },
         keyboardOptions = keyboardOptions.copy(imeAction = imeAction),
         singleLine = true,
-        colors = TextFieldDefaults.outlinedTextFieldColors()
+        colors = TextFieldDefaults.colors()
     )
 }
 
@@ -216,7 +216,7 @@ private fun PasswordField(
             keyboardType = KeyboardType.Password,
             imeAction = imeAction
         ),
-        colors = TextFieldDefaults.outlinedTextFieldColors()
+        colors = TextFieldDefaults.colors()
     )
 }
 

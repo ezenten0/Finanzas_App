@@ -1,5 +1,9 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.example.app_finanzas.transactions
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,6 +17,7 @@ import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -61,6 +66,7 @@ fun TransactionsRoute(
 /**
  * Displays the full transaction history with access to the detail screen.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TransactionsScreen(
     transactions: List<Transaction>,
@@ -97,6 +103,7 @@ fun TransactionsScreen(
 /**
  * Detail route that loads an individual transaction by id.
  */
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun TransactionDetailRoute(
     transactionRepository: TransactionRepository,
@@ -118,6 +125,7 @@ fun TransactionDetailRoute(
 /**
  * Renders the transaction details highlighting the amount, category and date.
  */
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun TransactionDetailScreen(
     transaction: Transaction?,
@@ -167,6 +175,7 @@ fun TransactionDetailScreen(
 /**
  * Breaks down the transaction details inside a card for better readability.
  */
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 private fun TransactionDetailContent(
     transaction: Transaction,
@@ -254,6 +263,7 @@ private fun amountColor(type: TransactionType) = if (type == INCOME) {
     MaterialTheme.colorScheme.error
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 private fun formatDate(raw: String): String {
     return runCatching {
         val parsed = LocalDate.parse(raw)

@@ -1,5 +1,7 @@
 package com.example.app_finanzas.home
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -8,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -17,7 +18,8 @@ import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -28,10 +30,10 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -42,14 +44,18 @@ import com.example.app_finanzas.home.model.Transaction
 import com.example.app_finanzas.home.model.TransactionType
 import com.example.app_finanzas.ui.theme.App_FinanzasTheme
 import java.text.NumberFormat
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-private val currencyFormatter: NumberFormat = NumberFormat.getCurrencyInstance(Locale("es", "ES"))
+private val currencyFormatter: NumberFormat =
+    NumberFormat.getCurrencyInstance(Locale.Builder().setLanguage("es").setRegion("ES").build())
 
 /**
  * Entry point composable that wires the [HomeViewModel] to the UI and reacts to
  * user profile updates coming from the authentication flow.
  */
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun HomeRoute(
     userName: String,
@@ -74,6 +80,7 @@ fun HomeRoute(
  * Stateless representation of the dashboard that displays the balance summary and
  * the recent transaction history.
  */
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun HomeScreen(
     state: HomeUiState,
@@ -118,6 +125,7 @@ fun HomeScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HomeTopBar(
     userName: String,
@@ -296,6 +304,7 @@ private fun TransactionsHeader() {
 /**
  * Card that displays a single transaction and triggers navigation when tapped.
  */
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 private fun TransactionCard(
     transaction: Transaction,
@@ -338,7 +347,7 @@ private fun TransactionCard(
                     color = amountColor(transaction.type)
                 )
             }
-            Divider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -373,13 +382,16 @@ private fun formatCurrency(amount: Double): String {
     return currencyFormatter.format(amount)
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 private fun formatDateLabel(raw: String): String {
     return runCatching {
-        val parsed = java.time.LocalDate.parse(raw)
-        parsed.format(java.time.format.DateTimeFormatter.ofPattern("d MMM", Locale("es", "ES")))
+        val parsed = LocalDate.parse(raw)
+        val locale = Locale.Builder().setLanguage("es").setRegion("ES").build()
+        parsed.format(DateTimeFormatter.ofPattern("d MMM", locale))
     }.getOrDefault(raw)
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Preview(showBackground = true)
 @Composable
 private fun HomeScreenPreview() {

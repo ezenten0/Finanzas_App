@@ -5,8 +5,6 @@ import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideIntoContainer
-import androidx.compose.animation.slideOutOfContainer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountBalanceWallet
@@ -25,16 +23,16 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavDestination
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.AnimatedNavHost
-import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
 import com.example.app_finanzas.data.transaction.TransactionRepository
 import com.example.app_finanzas.home.HomeRoute
 import com.example.app_finanzas.transactions.TransactionDetailRoute
 import com.example.app_finanzas.transactions.TransactionsRoute
 import com.example.app_finanzas.statistics.StatisticsRoute
 import com.example.app_finanzas.budgets.BudgetsRoute
+import com.google.accompanist.navigation.animation.AnimatedNavHost
+import com.google.accompanist.navigation.animation.composable
+import com.google.accompanist.navigation.animation.rememberAnimatedNavController
 
 /**
  * Hosts the animated navigation graph, bottom bar and screen wiring for the
@@ -48,7 +46,7 @@ fun FinanceApp(
     userEmail: String,
     modifier: Modifier = Modifier
 ) {
-    val navController = rememberNavController()
+    val navController = rememberAnimatedNavController()
     val currentDestination by navController.currentBackStackEntryAsState()
     val bottomDestinations = FinanceDestination.bottomDestinations
 
@@ -178,7 +176,7 @@ sealed class FinanceDestination(
     object Budgets : FinanceDestination("budgets", "Presupuestos", Icons.Rounded.BarChart)
 
     object TransactionDetail : FinanceDestination("transactionDetail/{transactionId}", "Detalle", Icons.Rounded.AccountBalanceWallet) {
-        const val transactionIdArg = "transactionId"
+        const val transactionIdArg = "TRANSACTION_ID"
         fun createRoute(id: Int): String = "transactionDetail/$id"
     }
 
