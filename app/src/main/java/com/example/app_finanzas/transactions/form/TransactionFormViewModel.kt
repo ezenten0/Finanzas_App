@@ -5,6 +5,7 @@ import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.app_finanzas.categories.CategoryDefinitions
 import com.example.app_finanzas.data.transaction.TransactionRepository
 import com.example.app_finanzas.home.model.Transaction
 import com.example.app_finanzas.home.model.TransactionType
@@ -27,10 +28,15 @@ class TransactionFormViewModel(
 
     private val formatter = DateTimeFormatter.ISO_LOCAL_DATE
 
-    private val _uiState = MutableStateFlow(TransactionFormUiState())
+    private val _uiState = MutableStateFlow(
+        TransactionFormUiState(
+            availableCategories = CategoryDefinitions.defaults.map { it.label }
+        )
+    )
     val uiState: StateFlow<TransactionFormUiState> = _uiState
 
     init {
+        observeCategories()
         if (transactionId != null) {
             loadTransaction(transactionId)
         } else {
@@ -38,20 +44,31 @@ class TransactionFormViewModel(
         }
     }
 
+    private fun observeCategories() {
+        viewModelScope.launch {
+            repository.observeCategories().collect { storedCategories ->
+                val merged = CategoryDefinitions.mergedLabels(storedCategories)
+                _uiState.update { it.copy(availableCategories = merged) }
+            }
+        }
+    }
+
     private fun loadTransaction(id: Int) {
         viewModelScope.launch {
             val transaction = repository.getTransactionById(id)
             if (transaction != null) {
-                _uiState.value = TransactionFormUiState(
-                    transactionId = transaction.id,
-                    title = transaction.title,
-                    description = transaction.description,
-                    amount = transaction.amount.toString(),
-                    type = transaction.type,
-                    category = transaction.category,
-                    date = LocalDate.parse(transaction.date, formatter),
-                    isEditing = true
-                )
+                _uiState.update {
+                    it.copy(
+                        transactionId = transaction.id,
+                        title = transaction.title,
+                        description = transaction.description,
+                        amount = transaction.amount.toString(),
+                        type = transaction.type,
+                        category = transaction.category,
+                        date = LocalDate.parse(transaction.date, formatter),
+                        isEditing = true
+                    )
+                }
             } else {
                 _uiState.update { it.copy(errorMessage = "No se encontró el movimiento a editar") }
             }
@@ -150,6 +167,7 @@ data class TransactionFormUiState(
     val type: TransactionType = TransactionType.EXPENSE,
     val category: String = "",
     val date: LocalDate = LocalDate.now(),
+    val availableCategories: List<String> = emptyList(),
     val isEditing: Boolean = false,
     val isSaving: Boolean = false,
     val saveSucceeded: Boolean = false,

@@ -110,6 +110,9 @@ fun FinanceApp(
                     },
                     onShowInsights = {
                         navController.navigate(FinanceDestination.Insights.route)
+                    },
+                    onShowStatistics = {
+                        navController.navigate(FinanceDestination.Statistics.route)
                     }
                 )
             }
