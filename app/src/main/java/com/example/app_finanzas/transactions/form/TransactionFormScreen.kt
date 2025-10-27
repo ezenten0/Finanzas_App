@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 
 package com.example.app_finanzas.transactions.form
 
@@ -11,25 +11,36 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.with
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ArrowDropDown
+import androidx.compose.material.icons.rounded.ArrowDropUp
 import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Event
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Payments
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -53,6 +64,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -64,6 +76,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.app_finanzas.data.transaction.TransactionRepository
 import com.example.app_finanzas.home.model.TransactionType
+import com.example.app_finanzas.ui.icons.CategoryIconByLabel
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
@@ -267,12 +280,16 @@ fun TransactionFormScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
 
-            OutlinedTextField(
-                value = state.category,
-                onValueChange = onCategoryChange,
-                label = { Text(text = "Categoría") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+            CategorySelector(
+                category = state.category,
+                categories = state.availableCategories,
+                onCategoryChange = onCategoryChange
+            )
+
+            CategorySuggestions(
+                categories = state.availableCategories,
+                selectedCategory = state.category,
+                onCategorySelected = onCategoryChange
             )
 
             Button(
@@ -304,6 +321,114 @@ fun TransactionFormScreen(
             ) {
                 Text(text = if (state.isEditing) "Actualizar" else "Guardar")
             }
+        }
+    }
+}
+
+@Composable
+private fun CategorySelector(
+    category: String,
+    categories: List<String>,
+    onCategoryChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val dropdownCategories = categories.ifEmpty { emptyList() }
+
+    Box(modifier = modifier.fillMaxWidth()) {
+        OutlinedTextField(
+            value = category,
+            onValueChange = {
+                onCategoryChange(it)
+                expanded = true
+            },
+            label = { Text(text = "Categoría") },
+            placeholder = { Text(text = "Ej. Hogar") },
+            leadingIcon = {
+                val resolvedLabel = if (category.isBlank()) "Otros" else category
+                CategoryIconByLabel(
+                    label = resolvedLabel,
+                    contentDescription = null
+                )
+            },
+            trailingIcon = {
+                IconButton(onClick = { expanded = !expanded }) {
+                    val icon = if (expanded) Icons.Rounded.ArrowDropUp else Icons.Rounded.ArrowDropDown
+                    Icon(imageVector = icon, contentDescription = null)
+                }
+            },
+            supportingText = {
+                Text(text = "Selecciona una categoría o escribe una nueva")
+            },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            dropdownCategories.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(text = option) },
+                    leadingIcon = {
+                        CategoryIconByLabel(
+                            label = option,
+                            contentDescription = null
+                        )
+                    },
+                    onClick = {
+                        onCategoryChange(option)
+                        expanded = false
+                    }
+                )
+            }
+            DropdownMenuItem(
+                text = { Text(text = "Crear nueva categoría…", fontWeight = FontWeight.SemiBold) },
+                leadingIcon = {
+                    Icon(imageVector = Icons.Rounded.Add, contentDescription = null)
+                },
+                onClick = {
+                    onCategoryChange("")
+                    expanded = false
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun CategorySuggestions(
+    categories: List<String>,
+    selectedCategory: String,
+    onCategorySelected: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (categories.isEmpty()) return
+
+    FlowRow(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        categories.take(8).forEach { option ->
+            val isSelected = option.equals(selectedCategory, ignoreCase = true)
+            FilterChip(
+                selected = isSelected,
+                onClick = { onCategorySelected(option) },
+                label = { Text(text = option) },
+                leadingIcon = {
+                    CategoryIconByLabel(
+                        label = option,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                )
+            )
         }
     }
 }

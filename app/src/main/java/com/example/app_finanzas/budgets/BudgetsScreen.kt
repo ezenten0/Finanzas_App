@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 
 package com.example.app_finanzas.budgets
 
@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -24,7 +26,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material.icons.rounded.PieChart
 import androidx.compose.material.icons.rounded.Savings
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.Button
@@ -37,6 +38,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -65,6 +68,9 @@ import com.example.app_finanzas.data.budget.BudgetGoal
 import com.example.app_finanzas.data.budget.BudgetRepository
 import com.example.app_finanzas.data.transaction.TransactionRepository
 import com.example.app_finanzas.home.analytics.BudgetProgress
+import com.example.app_finanzas.categories.CategoryDefinitions
+import com.example.app_finanzas.ui.icons.CategoryIcon
+import com.example.app_finanzas.ui.icons.CategoryIconRegistry
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.util.Locale
@@ -89,7 +95,7 @@ fun BudgetsRoute(
         state = state,
         snackbarHostState = snackbarHostState,
         onAddBudget = {
-            editingGoal = BudgetGoal(category = "", limit = 0.0)
+            editingGoal = BudgetGoal(category = "", limit = 0.0, iconKey = CategoryDefinitions.OTHERS)
         },
         onEditBudget = { goal -> editingGoal = goal },
         onDeleteBudget = { goal ->
@@ -181,6 +187,7 @@ fun BudgetsScreen(
                         val goal = state.goals.firstOrNull { it.category == progress.category }
                         BudgetProgressCard(
                             progress = progress,
+                            iconKey = goal?.iconKey,
                             onEdit = { goal?.let(onEditBudget) },
                             onDelete = { goal?.let(onDeleteBudget) },
                             modifier = Modifier
@@ -236,6 +243,7 @@ private fun EmptyBudgetsState(onAddBudget: () -> Unit) {
 @Composable
 private fun BudgetProgressCard(
     progress: BudgetProgress,
+    iconKey: String?,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier
@@ -262,11 +270,13 @@ private fun BudgetProgressCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Rounded.PieChart,
-                        contentDescription = null,
-                        tint = alertColor,
-                        modifier = Modifier.padding(end = 8.dp)
+                    CategoryIcon(
+                        key = iconKey,
+                        contentDescription = progress.category,
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .size(28.dp),
+                        tint = alertColor
                     )
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
@@ -326,6 +336,9 @@ private fun BudgetEditorDialog(
 ) {
     var category by rememberSaveable(goal.id, goal.category) { mutableStateOf(goal.category) }
     var limit by rememberSaveable(goal.id, goal.limit) { mutableStateOf(goal.limit.toString()) }
+    var iconKey by rememberSaveable(goal.id, goal.iconKey) {
+        mutableStateOf(goal.iconKey.ifBlank { CategoryDefinitions.OTHERS })
+    }
     val isEditing = goal.id != 0
 
     androidx.compose.material3.AlertDialog(
@@ -334,7 +347,8 @@ private fun BudgetEditorDialog(
             TextButton(onClick = {
                 val parsedLimit = limit.replace(",", ".").toDoubleOrNull()?.coerceAtLeast(0.0) ?: 0.0
                 if (category.isNotBlank() && parsedLimit > 0.0) {
-                    onConfirm(goal.copy(category = category.trim(), limit = parsedLimit))
+                    val normalizedIconKey = iconKey.ifBlank { CategoryDefinitions.OTHERS }
+                    onConfirm(goal.copy(category = category.trim(), limit = parsedLimit, iconKey = normalizedIconKey))
                 }
             }) {
                 Text(text = if (isEditing) "Actualizar" else "Guardar")
@@ -354,7 +368,10 @@ private fun BudgetEditorDialog(
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = category,
-                    onValueChange = { category = it },
+                    onValueChange = {
+                        category = it
+                        CategoryDefinitions.keyForLabel(it)?.let { key -> iconKey = key }
+                    },
                     label = { Text(text = "Categoría") },
                     singleLine = true
                 )
@@ -365,6 +382,44 @@ private fun BudgetEditorDialog(
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
+                Text(
+                    text = "Icono",
+                    style = MaterialTheme.typography.labelLarge
+                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    CategoryIconRegistry.defaultOptions.forEach { option ->
+                        val selected = option.key == iconKey
+                        FilterChip(
+                            selected = selected,
+                            onClick = { iconKey = option.key },
+                            label = { Text(text = option.label) },
+                            leadingIcon = {
+                                Icon(imageVector = option.icon, contentDescription = option.label)
+                            },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                            )
+                        )
+                    }
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    CategoryIcon(
+                        key = iconKey,
+                        contentDescription = null,
+                        modifier = Modifier.size(32.dp)
+                    )
+                    Text(
+                        text = "Icono seleccionado",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 Text(
                     text = "Recibirás alertas cuando superes el 75% del límite.",
                     style = MaterialTheme.typography.bodySmall,
