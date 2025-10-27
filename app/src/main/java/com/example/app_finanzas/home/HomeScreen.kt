@@ -4,6 +4,8 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -35,9 +37,14 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -47,7 +54,9 @@ import com.example.app_finanzas.data.transaction.TransactionRepository
 import com.example.app_finanzas.home.model.HomeUiState
 import com.example.app_finanzas.home.model.Transaction
 import com.example.app_finanzas.home.model.TransactionType
+import com.example.app_finanzas.ui.icons.CategoryIconByLabel
 import com.example.app_finanzas.ui.theme.App_FinanzasTheme
+import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -69,6 +78,7 @@ fun HomeRoute(
     onAddTransaction: () -> Unit,
     onTransactionSelected: (Int) -> Unit,
     onShowInsights: () -> Unit,
+    onShowStatistics: () -> Unit,
     viewModel: HomeViewModel = viewModel(
         factory = HomeViewModelFactory(transactionRepository)
     )
@@ -81,7 +91,8 @@ fun HomeRoute(
         state = state,
         onTransactionSelected = onTransactionSelected,
         onAddTransaction = onAddTransaction,
-        onShowInsights = onShowInsights
+        onShowInsights = onShowInsights,
+        onShowStatistics = onShowStatistics
     )
 }
 
@@ -96,7 +107,8 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
     onTransactionSelected: (Int) -> Unit = {},
     onAddTransaction: () -> Unit = {},
-    onShowInsights: () -> Unit = {}
+    onShowInsights: () -> Unit = {},
+    onShowStatistics: () -> Unit = {}
 ) {
     Scaffold(
         topBar = {
@@ -126,7 +138,8 @@ fun HomeScreen(
                 BalanceSummaryCard(
                     totalBalance = state.totalBalance,
                     totalIncome = state.totalIncome,
-                    totalExpense = state.totalExpense
+                    totalExpense = state.totalExpense,
+                    onClick = onShowStatistics
                 )
             }
             item {
@@ -195,10 +208,30 @@ private fun BalanceSummaryCard(
     totalBalance: Double,
     totalIncome: Double,
     totalExpense: Double,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {}
 ) {
+    val scale = remember { Animatable(1f) }
+    val scope = rememberCoroutineScope()
+    var isAnimating by remember { mutableStateOf(false) }
+
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = scale.value
+                scaleY = scale.value
+            }
+            .clickable(enabled = !isAnimating) {
+                if (isAnimating) return@clickable
+                isAnimating = true
+                scope.launch {
+                    scale.animateTo(0.96f, animationSpec = tween(durationMillis = 140))
+                    scale.animateTo(1f, animationSpec = tween(durationMillis = 200))
+                    onClick()
+                    isAnimating = false
+                }
+            },
         shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primary
@@ -379,11 +412,21 @@ private fun TransactionCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text = transaction.category,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    CategoryIconByLabel(
+                        label = transaction.category,
+                        contentDescription = transaction.category,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = transaction.category,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
                 Text(
                     text = formatDateLabel(transaction.date),
                     style = MaterialTheme.typography.labelLarge,

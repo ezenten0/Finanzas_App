@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 
 package com.example.app_finanzas.transactions.form
 
@@ -12,6 +12,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.with
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -25,11 +27,18 @@ import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Event
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Payments
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.ExposedDropdownMenu
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -64,6 +73,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.app_finanzas.data.transaction.TransactionRepository
 import com.example.app_finanzas.home.model.TransactionType
+import com.example.app_finanzas.ui.icons.CategoryIconByLabel
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
@@ -267,12 +277,16 @@ fun TransactionFormScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
 
-            OutlinedTextField(
-                value = state.category,
-                onValueChange = onCategoryChange,
-                label = { Text(text = "Categoría") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+            CategorySelector(
+                category = state.category,
+                categories = state.availableCategories,
+                onCategoryChange = onCategoryChange
+            )
+
+            CategorySuggestions(
+                categories = state.availableCategories,
+                selectedCategory = state.category,
+                onCategorySelected = onCategoryChange
             )
 
             Button(
@@ -304,6 +318,118 @@ fun TransactionFormScreen(
             ) {
                 Text(text = if (state.isEditing) "Actualizar" else "Guardar")
             }
+        }
+    }
+}
+
+@Composable
+private fun CategorySelector(
+    category: String,
+    categories: List<String>,
+    onCategoryChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val dropdownCategories = categories.ifEmpty { emptyList() }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        modifier = modifier.fillMaxWidth()
+    ) {
+        OutlinedTextField(
+            value = category,
+            onValueChange = onCategoryChange,
+            label = { Text(text = "Categoría") },
+            placeholder = { Text(text = "Ej. Hogar") },
+            leadingIcon = {
+                val resolvedLabel = if (category.isBlank()) "Otros" else category
+                CategoryIconByLabel(
+                    label = resolvedLabel,
+                    contentDescription = null
+                )
+            },
+            trailingIcon = {
+                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+            },
+            supportingText = {
+                Text(text = "Selecciona una categoría o escribe una nueva")
+            },
+            singleLine = true,
+            modifier = Modifier
+                .menuAnchor()
+                .fillMaxWidth()
+        )
+
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            dropdownCategories.forEach { option ->
+                DropdownMenuItem(
+                    text = {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            CategoryIconByLabel(
+                                label = option,
+                                contentDescription = null
+                            )
+                            Text(text = option)
+                        }
+                    },
+                    onClick = {
+                        onCategoryChange(option)
+                        expanded = false
+                    }
+                )
+            }
+            DropdownMenuItem(
+                text = { Text(text = "Crear nueva categoría…", fontWeight = FontWeight.SemiBold) },
+                leadingIcon = {
+                    Icon(imageVector = Icons.Rounded.Add, contentDescription = null)
+                },
+                onClick = {
+                    onCategoryChange("")
+                    expanded = false
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun CategorySuggestions(
+    categories: List<String>,
+    selectedCategory: String,
+    onCategorySelected: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (categories.isEmpty()) return
+
+    FlowRow(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        categories.take(8).forEach { option ->
+            val isSelected = option.equals(selectedCategory, ignoreCase = true)
+            FilterChip(
+                selected = isSelected,
+                onClick = { onCategorySelected(option) },
+                label = { Text(text = option) },
+                leadingIcon = {
+                    CategoryIconByLabel(
+                        label = option,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                )
+            )
         }
     }
 }
