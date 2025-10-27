@@ -325,17 +325,97 @@ fun TransactionFormScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
 
-            CategorySelector(
-                category = state.category,
-                categories = state.availableCategories,
-                onCategoryChange = onCategoryChange
-            )
+            var categoryMenuExpanded by remember { mutableStateOf(false) }
+            val dropdownCategories = state.availableCategories.ifEmpty { emptyList() }
 
-            CategorySuggestions(
-                categories = state.availableCategories,
-                selectedCategory = state.category,
-                onCategorySelected = onCategoryChange
-            )
+            Box(modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = state.category,
+                    onValueChange = {
+                        onCategoryChange(it)
+                        categoryMenuExpanded = true
+                    },
+                    label = { Text(text = "Categoría") },
+                    placeholder = { Text(text = "Ej. Hogar") },
+                    leadingIcon = {
+                        val resolvedLabel = if (state.category.isBlank()) "Otros" else state.category
+                        CategoryIconByLabel(
+                            label = resolvedLabel,
+                            contentDescription = null
+                        )
+                    },
+                    trailingIcon = {
+                        IconButton(onClick = { categoryMenuExpanded = !categoryMenuExpanded }) {
+                            val icon = if (categoryMenuExpanded) Icons.Rounded.ArrowDropUp else Icons.Rounded.ArrowDropDown
+                            Icon(imageVector = icon, contentDescription = null)
+                        }
+                    },
+                    supportingText = {
+                        Text(text = "Selecciona una categoría o escribe una nueva")
+                    },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                DropdownMenu(
+                    expanded = categoryMenuExpanded,
+                    onDismissRequest = { categoryMenuExpanded = false },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    dropdownCategories.forEach { option ->
+                        DropdownMenuItem(
+                            text = { Text(text = option) },
+                            leadingIcon = {
+                                CategoryIconByLabel(
+                                    label = option,
+                                    contentDescription = null
+                                )
+                            },
+                            onClick = {
+                                onCategoryChange(option)
+                                categoryMenuExpanded = false
+                            }
+                        )
+                    }
+                    DropdownMenuItem(
+                        text = { Text(text = "Crear nueva categoría…", fontWeight = FontWeight.SemiBold) },
+                        leadingIcon = {
+                            Icon(imageVector = Icons.Rounded.Add, contentDescription = null)
+                        },
+                        onClick = {
+                            onCategoryChange("")
+                            categoryMenuExpanded = false
+                        }
+                    )
+                }
+            }
+
+            if (dropdownCategories.isNotEmpty()) {
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    dropdownCategories.take(8).forEach { option ->
+                        val isSelected = option.equals(state.category, ignoreCase = true)
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { onCategoryChange(option) },
+                            label = { Text(text = option) },
+                            leadingIcon = {
+                                CategoryIconByLabel(
+                                    label = option,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                            )
+                        )
+                    }
+                }
+            }
 
             Button(
                 onClick = { datePickerVisible.value = true },
@@ -351,218 +431,3 @@ fun TransactionFormScreen(
     }
 }
 
-@Composable
-private fun CategorySelector(
-    category: String,
-    categories: List<String>,
-    onCategoryChange: (String) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var expanded by remember { mutableStateOf(false) }
-    val dropdownCategories = categories.ifEmpty { emptyList() }
-
-    Box(modifier = modifier.fillMaxWidth()) {
-        OutlinedTextField(
-            value = category,
-            onValueChange = {
-                onCategoryChange(it)
-                expanded = true
-            },
-            label = { Text(text = "Categoría") },
-            placeholder = { Text(text = "Ej. Hogar") },
-            leadingIcon = {
-                val resolvedLabel = if (category.isBlank()) "Otros" else category
-                CategoryIconByLabel(
-                    label = resolvedLabel,
-                    contentDescription = null
-                )
-            },
-            trailingIcon = {
-                IconButton(onClick = { expanded = !expanded }) {
-                    val icon = if (expanded) Icons.Rounded.ArrowDropUp else Icons.Rounded.ArrowDropDown
-                    Icon(imageVector = icon, contentDescription = null)
-                }
-            },
-            supportingText = {
-                Text(text = "Selecciona una categoría o escribe una nueva")
-            },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            dropdownCategories.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(text = option) },
-                    leadingIcon = {
-                        CategoryIconByLabel(
-                            label = option,
-                            contentDescription = null
-                        )
-                    },
-                    onClick = {
-                        onCategoryChange(option)
-                        expanded = false
-                    }
-                )
-            }
-            DropdownMenuItem(
-                text = { Text(text = "Crear nueva categoría…", fontWeight = FontWeight.SemiBold) },
-                leadingIcon = {
-                    Icon(imageVector = Icons.Rounded.Add, contentDescription = null)
-                },
-                onClick = {
-                    onCategoryChange("")
-                    expanded = false
-                }
-            )
-        }
-    }
-}
-
-@Composable
-private fun CategorySuggestions(
-    categories: List<String>,
-    selectedCategory: String,
-    onCategorySelected: (String) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    if (categories.isEmpty()) return
-
-    FlowRow(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        categories.take(8).forEach { option ->
-            val isSelected = option.equals(selectedCategory, ignoreCase = true)
-            FilterChip(
-                selected = isSelected,
-                onClick = { onCategorySelected(option) },
-                label = { Text(text = option) },
-                leadingIcon = {
-                    CategoryIconByLabel(
-                        label = option,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                )
-            )
-        }
-    }
-}
-
-@Composable
-private fun CategorySelector(
-    category: String,
-    categories: List<String>,
-    onCategoryChange: (String) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var expanded by remember { mutableStateOf(false) }
-    val dropdownCategories = categories.ifEmpty { emptyList() }
-
-    Box(modifier = modifier.fillMaxWidth()) {
-        OutlinedTextField(
-            value = category,
-            onValueChange = {
-                onCategoryChange(it)
-                expanded = true
-            },
-            label = { Text(text = "Categoría") },
-            placeholder = { Text(text = "Ej. Hogar") },
-            leadingIcon = {
-                val resolvedLabel = if (category.isBlank()) "Otros" else category
-                CategoryIconByLabel(
-                    label = resolvedLabel,
-                    contentDescription = null
-                )
-            },
-            trailingIcon = {
-                IconButton(onClick = { expanded = !expanded }) {
-                    val icon = if (expanded) Icons.Rounded.ArrowDropUp else Icons.Rounded.ArrowDropDown
-                    Icon(imageVector = icon, contentDescription = null)
-                }
-            },
-            supportingText = {
-                Text(text = "Selecciona una categoría o escribe una nueva")
-            },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            dropdownCategories.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(text = option) },
-                    leadingIcon = {
-                        CategoryIconByLabel(
-                            label = option,
-                            contentDescription = null
-                        )
-                    },
-                    onClick = {
-                        onCategoryChange(option)
-                        expanded = false
-                    }
-                )
-            }
-            DropdownMenuItem(
-                text = { Text(text = "Crear nueva categoría…", fontWeight = FontWeight.SemiBold) },
-                leadingIcon = {
-                    Icon(imageVector = Icons.Rounded.Add, contentDescription = null)
-                },
-                onClick = {
-                    onCategoryChange("")
-                    expanded = false
-                }
-            )
-        }
-    }
-}
-
-@Composable
-private fun CategorySuggestions(
-    categories: List<String>,
-    selectedCategory: String,
-    onCategorySelected: (String) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    if (categories.isEmpty()) return
-
-    FlowRow(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        categories.take(8).forEach { option ->
-            val isSelected = option.equals(selectedCategory, ignoreCase = true)
-            FilterChip(
-                selected = isSelected,
-                onClick = { onCategorySelected(option) },
-                label = { Text(text = option) },
-                leadingIcon = {
-                    CategoryIconByLabel(
-                        label = option,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                )
-            )
-        }
-    }
-}
