@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -64,6 +65,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -151,10 +153,29 @@ fun TransactionFormScreen(
     val dateFormatter = remember { DateTimeFormatter.ofPattern("d 'de' MMMM yyyy", Locale("es", "ES")) }
 
     if (datePickerVisible.value) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = state.date
+                .atStartOfDay(ZoneId.systemDefault())
+                .toInstant()
+                .toEpochMilli()
+        )
+        val confirmEnabled by remember(datePickerState) {
+            derivedStateOf { datePickerState.selectedDateMillis != null }
+        }
         DatePickerDialog(
             onDismissRequest = { datePickerVisible.value = false },
             confirmButton = {
-                TextButton(onClick = { datePickerVisible.value = false }) {
+                TextButton(
+                    enabled = confirmEnabled,
+                    onClick = {
+                        val millis = datePickerState.selectedDateMillis ?: return@TextButton
+                        val selectedDate = Instant.ofEpochMilli(millis)
+                            .atZone(ZoneId.systemDefault())
+                            .toLocalDate()
+                        onDateSelected(selectedDate)
+                        datePickerVisible.value = false
+                    }
+                ) {
                     Text(text = "Listo")
                 }
             },
@@ -164,21 +185,10 @@ fun TransactionFormScreen(
                 }
             }
         ) {
-            val datePickerState = rememberDatePickerState(
-                initialSelectedDateMillis = state.date
-                    .atStartOfDay(ZoneId.systemDefault())
-                    .toInstant()
-                    .toEpochMilli()
-            )
             DatePicker(
                 state = datePickerState,
                 title = { Text(text = "Selecciona la fecha") }
             )
-            LaunchedEffect(datePickerState.selectedDateMillis) {
-                val millis = datePickerState.selectedDateMillis ?: return@LaunchedEffect
-                val selectedDate = Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalDate()
-                onDateSelected(selectedDate)
-            }
         }
     }
 
@@ -202,6 +212,35 @@ fun TransactionFormScreen(
                     containerColor = MaterialTheme.colorScheme.background
                 )
             )
+        },
+        bottomBar = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .imePadding()
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                AnimatedVisibility(visible = state.isSaving) {
+                    Text(
+                        text = "Guardando movimiento...",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                Button(
+                    onClick = onSave,
+                    enabled = !state.isSaving,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp)
+                ) {
+                    Text(text = if (state.isEditing) "Actualizar" else "Guardar")
+                }
+            }
         }
     ) { innerPadding ->
         val scrollState = rememberScrollState()
@@ -209,7 +248,6 @@ fun TransactionFormScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .imePadding()
                 .verticalScroll(scrollState)
                 .padding(horizontal = 24.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
@@ -309,28 +347,114 @@ fun TransactionFormScreen(
                 Text(text = dateFormatter.format(state.date))
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+        }
+    }
+}
 
-            AnimatedVisibility(visible = state.isSaving) {
-                Text(
-                    text = "Guardando movimiento...",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
+@Composable
+private fun CategorySelector(
+    category: String,
+    categories: List<String>,
+    onCategoryChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val dropdownCategories = categories.ifEmpty { emptyList() }
+
+    Box(modifier = modifier.fillMaxWidth()) {
+        OutlinedTextField(
+            value = category,
+            onValueChange = {
+                onCategoryChange(it)
+                expanded = true
+            },
+            label = { Text(text = "Categoría") },
+            placeholder = { Text(text = "Ej. Hogar") },
+            leadingIcon = {
+                val resolvedLabel = if (category.isBlank()) "Otros" else category
+                CategoryIconByLabel(
+                    label = resolvedLabel,
+                    contentDescription = null
+                )
+            },
+            trailingIcon = {
+                IconButton(onClick = { expanded = !expanded }) {
+                    val icon = if (expanded) Icons.Rounded.ArrowDropUp else Icons.Rounded.ArrowDropDown
+                    Icon(imageVector = icon, contentDescription = null)
+                }
+            },
+            supportingText = {
+                Text(text = "Selecciona una categoría o escribe una nueva")
+            },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            dropdownCategories.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(text = option) },
+                    leadingIcon = {
+                        CategoryIconByLabel(
+                            label = option,
+                            contentDescription = null
+                        )
+                    },
+                    onClick = {
+                        onCategoryChange(option)
+                        expanded = false
+                    }
                 )
             }
+            DropdownMenuItem(
+                text = { Text(text = "Crear nueva categoría…", fontWeight = FontWeight.SemiBold) },
+                leadingIcon = {
+                    Icon(imageVector = Icons.Rounded.Add, contentDescription = null)
+                },
+                onClick = {
+                    onCategoryChange("")
+                    expanded = false
+                }
+            )
+        }
+    }
+}
 
-            Spacer(modifier = Modifier.height(12.dp))
+@Composable
+private fun CategorySuggestions(
+    categories: List<String>,
+    selectedCategory: String,
+    onCategorySelected: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (categories.isEmpty()) return
 
-            Button(
-                onClick = onSave,
-                enabled = !state.isSaving,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp)
-            ) {
-                Text(text = if (state.isEditing) "Actualizar" else "Guardar")
-            }
+    FlowRow(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        categories.take(8).forEach { option ->
+            val isSelected = option.equals(selectedCategory, ignoreCase = true)
+            FilterChip(
+                selected = isSelected,
+                onClick = { onCategorySelected(option) },
+                label = { Text(text = option) },
+                leadingIcon = {
+                    CategoryIconByLabel(
+                        label = option,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                )
+            )
         }
     }
 }
