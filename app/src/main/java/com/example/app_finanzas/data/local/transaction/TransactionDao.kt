@@ -45,4 +45,7 @@ interface TransactionDao {
 
     @Query("DELETE FROM transactions WHERE id = :transactionId")
     suspend fun deleteTransaction(transactionId: Int)
+
+    @Query("SELECT DISTINCT category FROM transactions ORDER BY category ASC")
+    fun observeCategories(): Flow<List<String>>
 }
