@@ -28,6 +28,10 @@ class TransactionRepository(
         }
     }
 
+    fun observeCategories(): Flow<List<String>> {
+        return transactionDao.observeCategories()
+    }
+
     /**
      * Ensures the database contains a baseline data set; this keeps the demo
      * experience rich without requiring the user to add manual entries first.
