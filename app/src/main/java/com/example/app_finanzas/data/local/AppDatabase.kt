@@ -16,7 +16,7 @@ import com.example.app_finanzas.data.local.user.UserEntity
  */
 @Database(
     entities = [UserEntity::class, TransactionEntity::class, BudgetEntity::class],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

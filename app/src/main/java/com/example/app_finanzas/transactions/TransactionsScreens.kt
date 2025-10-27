@@ -10,26 +10,36 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,11 +51,13 @@ import com.example.app_finanzas.home.model.Transaction
 import com.example.app_finanzas.home.model.TransactionType
 import com.example.app_finanzas.home.model.TransactionType.EXPENSE
 import com.example.app_finanzas.home.model.TransactionType.INCOME
+import com.example.app_finanzas.ui.icons.CategoryIconByLabel
 import java.text.NumberFormat
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
+import kotlinx.coroutines.launch
 
 private val numberFormat: NumberFormat = NumberFormat.getCurrencyInstance(Locale("es", "ES"))
 
@@ -60,10 +72,19 @@ fun TransactionsRoute(
     modifier: Modifier = Modifier
 ) {
     val transactions by transactionRepository.observeTransactions().collectAsState(initial = emptyList())
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
     TransactionsScreen(
         transactions = transactions,
         onTransactionSelected = onTransactionSelected,
         onAddTransaction = onAddTransaction,
+        onDeleteTransaction = { transaction ->
+            scope.launch {
+                transactionRepository.deleteTransaction(transaction.id)
+                snackbarHostState.showSnackbar("Movimiento eliminado: ${transaction.title}")
+            }
+        },
+        snackbarHostState = snackbarHostState,
         modifier = modifier
     )
 }
@@ -77,9 +98,14 @@ fun TransactionsScreen(
     transactions: List<Transaction>,
     onTransactionSelected: (Int) -> Unit,
     onAddTransaction: () -> Unit,
+    onDeleteTransaction: (Transaction) -> Unit,
+    snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier
 ) {
+    var transactionPendingDeletion by remember { mutableStateOf<Transaction?>(null) }
+
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(text = "Historial de movimientos", fontWeight = FontWeight.Bold) },
@@ -107,11 +133,38 @@ fun TransactionsScreen(
                 items(transactions, key = { it.id }) { transaction ->
                     TransactionListItem(
                         transaction = transaction,
-                        onClick = { onTransactionSelected(transaction.id) }
+                        onClick = { onTransactionSelected(transaction.id) },
+                        onDelete = { transactionPendingDeletion = transaction }
                     )
                 }
             }
         }
+    }
+
+    transactionPendingDeletion?.let { transaction ->
+        AlertDialog(
+            onDismissRequest = { transactionPendingDeletion = null },
+            confirmButton = {
+                TextButton(onClick = {
+                    onDeleteTransaction(transaction)
+                    transactionPendingDeletion = null
+                }) {
+                    Text(text = "Eliminar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { transactionPendingDeletion = null }) {
+                    Text(text = "Cancelar")
+                }
+            },
+            title = { Text(text = "Eliminar movimiento") },
+            text = {
+                Text(
+                    text = "¿Deseas eliminar \"${transaction.title}\"? Esta acción no se puede deshacer.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        )
     }
 }
 
@@ -257,20 +310,40 @@ private fun TransactionDetailContent(
                 style = MaterialTheme.typography.bodyLarge
             )
             AmountRow(label = "Monto", value = formatAmount(transaction))
-            AmountRow(label = "Categoría", value = transaction.category)
+            AmountRow(
+                label = "Categoría",
+                value = transaction.category,
+                leadingIcon = {
+                    CategoryIconByLabel(
+                        label = transaction.category,
+                        contentDescription = transaction.category,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            )
             AmountRow(label = "Fecha", value = formatDate(transaction.date))
         }
     }
 }
 
 @Composable
-private fun AmountRow(label: String, value: String) {
+private fun AmountRow(
+    label: String,
+    value: String,
+    leadingIcon: (@Composable () -> Unit)? = null
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(text = label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-        Text(text = value, style = MaterialTheme.typography.bodyMedium)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            leadingIcon?.invoke()
+            Text(text = value, style = MaterialTheme.typography.bodyMedium)
+        }
     }
 }
 
@@ -280,7 +353,8 @@ private fun AmountRow(label: String, value: String) {
 @Composable
 private fun TransactionListItem(
     transaction: Transaction,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onDelete: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -293,14 +367,32 @@ private fun TransactionListItem(
                 .padding(horizontal = 20.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(text = transaction.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Text(text = transaction.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(text = transaction.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(text = transaction.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                IconButton(onClick = onDelete) {
+                    Icon(imageVector = Icons.Rounded.Delete, contentDescription = "Eliminar movimiento")
+                }
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = transaction.category, style = MaterialTheme.typography.labelLarge)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    CategoryIconByLabel(
+                        label = transaction.category,
+                        contentDescription = transaction.category,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(text = transaction.category, style = MaterialTheme.typography.labelLarge)
+                }
                 Text(text = formatAmount(transaction), style = MaterialTheme.typography.titleMedium, color = amountColor(transaction.type))
             }
         }

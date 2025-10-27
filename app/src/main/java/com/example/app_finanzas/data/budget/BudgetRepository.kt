@@ -1,5 +1,6 @@
 package com.example.app_finanzas.data.budget
 
+import com.example.app_finanzas.categories.CategoryDefinitions
 import com.example.app_finanzas.data.local.budget.BudgetDao
 import com.example.app_finanzas.data.local.budget.BudgetEntity
 import kotlinx.coroutines.Dispatchers
@@ -53,7 +54,8 @@ class BudgetRepository(
         return BudgetGoal(
             id = id,
             category = category,
-            limit = limit
+            limit = limit,
+            iconKey = iconKey
         )
     }
 
@@ -61,7 +63,8 @@ class BudgetRepository(
         return BudgetEntity(
             id = id,
             category = category.trim(),
-            limit = limit
+            limit = limit,
+            iconKey = iconKey
         )
     }
 }
@@ -72,7 +75,8 @@ class BudgetRepository(
 data class BudgetGoal(
     val id: Int = 0,
     val category: String,
-    val limit: Double
+    val limit: Double,
+    val iconKey: String
 )
 
 /**
@@ -82,10 +86,10 @@ data class BudgetGoal(
 object BudgetDefaults {
     fun defaultGoals(): List<BudgetGoal> {
         return listOf(
-            BudgetGoal(category = "Alimentos", limit = 300.0),
-            BudgetGoal(category = "Entretenimiento", limit = 120.0),
-            BudgetGoal(category = "Social", limit = 150.0),
-            BudgetGoal(category = "Inversiones", limit = 200.0)
+            BudgetGoal(category = "Alimentos", limit = 300.0, iconKey = CategoryDefinitions.FOOD),
+            BudgetGoal(category = "Entretenimiento", limit = 120.0, iconKey = CategoryDefinitions.ENTERTAINMENT),
+            BudgetGoal(category = "Social", limit = 150.0, iconKey = CategoryDefinitions.SOCIAL),
+            BudgetGoal(category = "Inversiones", limit = 200.0, iconKey = CategoryDefinitions.INVESTMENTS)
         )
     }
 }

@@ -12,5 +12,6 @@ data class BudgetEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
     val category: String,
-    val limit: Double
+    val limit: Double,
+    val iconKey: String
 )
